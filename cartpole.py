@@ -3,19 +3,39 @@ import gym
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Save model
+def save_list(q_table):
+    with open('saved_q_list.npy', 'wb') as f:
+        np.save(f, q_table)
+        print('Q_TABLE WAS SAVED')
+    f.close()
+
+# Load model
+def load_list():
+    with open('saved_q_list.npy', 'rb') as f:
+        q_table = np.load(f)
+        print('USING SAVED Q_TABLE')
+    f.close()
+    return q_table
+
+
 env = gym.make("MountainCar-v0")
 
-LEARNING_RATE = 0.1
-GAMMA = 0.95
-EPISODES = 20000
-SHOW_THIS_OFTEN = 1000
+USE_SAVED_LIST = True
+SAVE_LIST = False
 
-epsilon = 0.7
-START_EPSILON_DECAYING = 6000
-END_EPSILON_DECAYING = 11000
+LEARNING_RATE = 0.025
+GAMMA = 0.95
+EPISODES = 15
+SHOW = True
+SHOW_THIS_OFTEN = 1
+
+epsilon = 0
+START_EPSILON_DECAYING = 3000
+END_EPSILON_DECAYING = 6000
 EPSILON_DECAY = epsilon/(END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 
-DISCRETE_OS_SIZE = [20] * len(env.observation_space.high)
+DISCRETE_OS_SIZE = [50] * len(env.observation_space.high)
 discrete_os_win_size = (env.observation_space.high-env.observation_space.low)/DISCRETE_OS_SIZE
 
 actions = { 0 : "Left", 1 : "Nothing", 2 : "Right" }
@@ -23,8 +43,11 @@ actions = { 0 : "Left", 1 : "Nothing", 2 : "Right" }
 # Acc. Rewards per Episode List for Plotting
 RewardPerEpisodeList = []
 
-q_table = np.random.uniform(low=-2, high=0, size=(DISCRETE_OS_SIZE + [env.action_space.n]))
-# print(q_table.shape)
+if USE_SAVED_LIST:
+    q_table = load_list()
+else:
+    q_table = np.random.uniform(low=-2, high=0, size=(DISCRETE_OS_SIZE + [env.action_space.n]))
+    # print(q_table.shape)
 
 def get_discrete_state(state):
     discrete_state = (state - env.observation_space.low) / discrete_os_win_size
@@ -32,7 +55,7 @@ def get_discrete_state(state):
 
 for episode in range(EPISODES):
 
-    if episode%SHOW_THIS_OFTEN == 0:
+    if SHOW and episode%SHOW_THIS_OFTEN == 0:
         print(f"episode={episode}, eps={epsilon}")
         render = True
     else:
@@ -82,6 +105,8 @@ for episode in range(EPISODES):
     RewardPerEpisodeList.append(rewardSum)
 
 env.close()
+if SAVE_LIST:
+    save_list(q_table)
 
 # Plot
 plt.figure(figsize=(20,10))
@@ -90,12 +115,3 @@ plt.title('Rewards')
 plt.xlabel('Episode')
 plt.ylabel('Reward')
 plt.show()
-
-# Save model
-# data = q_table
-# with open('model.txt', 'w') as outfile:
-#     outfile.write('# Array shape: {0}\n'.format(data.shape))
-#     for data_slice in data:
-#         np.savetxt(outfile, data_slice, fmt='%-7.2f')
-#         outfile.write('# New slice\n')
-# outfile.close()
